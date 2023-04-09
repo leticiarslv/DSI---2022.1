@@ -165,7 +165,7 @@ class BigCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(8),
         child: Text(
           pair.asLowerCase,
           style: style,
@@ -187,19 +187,47 @@ class FavoritesPage extends StatelessWidget {
       );
     }
 
-    return ListView(
+    return GridView.count(
+      crossAxisCount: 2,
+      padding: EdgeInsets.all(16),
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
-        ),
-        for (var pair in appState.favorites)
-          ListTile(
-            leading: Icon(Icons.favorite),
-            title: Text(pair.asLowerCase),
-          ),
+        for (var pair in appState.favorites) FavoriteCard(pair: pair),
       ],
+    );
+  }
+}
+
+class FavoriteCard extends StatelessWidget {
+  const FavoriteCard({super.key, required this.pair});
+
+  final WordPair pair;
+
+  @override
+  Widget build(BuildContext context) {
+    var theme = Theme.of(context);
+    final style = theme.textTheme.bodyLarge!.copyWith(
+      color: theme.colorScheme.onPrimary,
+    );
+
+    return Card(
+      color: theme.colorScheme.primary,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              pair.asLowerCase,
+              style: style,
+              semanticsLabel: pair.asPascalCase,
+            ),
+            SizedBox(height: 10),
+            Icon(Icons.favorite),
+          ],
+        ),
+      ),
     );
   }
 }
