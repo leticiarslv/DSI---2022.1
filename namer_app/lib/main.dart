@@ -165,7 +165,7 @@ class BigCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(20),
         child: Text(
           pair.asLowerCase,
           style: style,
@@ -176,7 +176,16 @@ class BigCard extends StatelessWidget {
   }
 }
 
-class FavoritesPage extends StatelessWidget {
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
+
+  @override
+  State<FavoritesPage> createState() => _FavoritesPageState();
+}
+
+class _FavoritesPageState extends State<FavoritesPage> {
+  bool _isGrid = true;
+
   @override
   Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
@@ -187,47 +196,62 @@ class FavoritesPage extends StatelessWidget {
       );
     }
 
-    return GridView.count(
-      crossAxisCount: 2,
-      padding: EdgeInsets.all(16),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
+    List<Widget> favoritesList = appState.favorites
+        .map((pair) => ListTile(
+              leading: Icon(Icons.favorite),
+              title: Text(pair.asLowerCase),
+            ))
+        .toList();
+
+    List<Widget> favoritesGrid = appState.favorites
+        .map((pair) => Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  pair.asLowerCase,
+                  style: Theme.of(context).textTheme.titleLarge,
+                  semanticsLabel: pair.asPascalCase,
+                ),
+              ),
+            ))
+        .toList();
+
+    final favoritesView = _isGrid
+        ? GridView.count(
+            crossAxisCount: 2,
+            padding: const EdgeInsets.all(10),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1,
+            children: favoritesGrid,
+          )
+        : ListView(
+            children: favoritesList,
+          );
+
+    return Column(
       children: [
-        for (var pair in appState.favorites) FavoriteCard(pair: pair),
-      ],
-    );
-  }
-}
-
-class FavoriteCard extends StatelessWidget {
-  const FavoriteCard({super.key, required this.pair});
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    final style = theme.textTheme.bodyLarge!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              pair.asLowerCase,
-              style: style,
-              semanticsLabel: pair.asPascalCase,
-            ),
-            SizedBox(height: 10),
-            Icon(Icons.favorite),
-          ],
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("You have ${appState.favorites.length} favorites: "),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _isGrid = !_isGrid;
+                  });
+                },
+                icon: Icon(_isGrid ? Icons.list : Icons.grid_view),
+              ),
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: favoritesView,
+        ),
+      ],
     );
   }
 }
