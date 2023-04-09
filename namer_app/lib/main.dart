@@ -43,6 +43,11 @@ class MyAppState extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void removeFavorite(WordPair pair) {
+    favorites.remove(pair);
+    notifyListeners();
+  }
 }
 
 class MyHomePage extends StatefulWidget {
@@ -200,18 +205,38 @@ class _FavoritesPageState extends State<FavoritesPage> {
         .map((pair) => ListTile(
               leading: Icon(Icons.favorite),
               title: Text(pair.asLowerCase),
+              trailing: IconButton(
+                icon: Icon(Icons.remove_circle_outline),
+                onPressed: () {
+                  appState.removeFavorite(pair);
+                },
+              ),
             ))
         .toList();
 
     List<Widget> favoritesGrid = appState.favorites
         .map((pair) => Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  pair.asLowerCase,
-                  style: Theme.of(context).textTheme.titleLarge,
-                  semanticsLabel: pair.asPascalCase,
-                ),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      pair.asLowerCase,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      semanticsLabel: pair.asPascalCase,
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: IconButton(
+                      icon: Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        appState.removeFavorite(pair);
+                      },
+                    ),
+                  )
+                ],
               ),
             ))
         .toList();
