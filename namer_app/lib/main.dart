@@ -1,6 +1,8 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:namer_app/words.dart';
+import 'package:namer_app/edit.dart';
+import 'package:namer_app/repository.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,272 +13,255 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
-      child: MaterialApp(
-        title: 'Namer App',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        ),
-        home: MyHomePage(),
+    return MaterialApp(
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const RandomWords(),
+        '/edit': (context) => const EditPage(),
+      },
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       ),
     );
   }
 }
 
-class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
+class RandomWords extends StatefulWidget {
+  const RandomWords({super.key});
 
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
-  }
-
-  var favorites = <WordPair>[];
-
-  void toggleFavorite() {
-    if (favorites.contains(current)) {
-      favorites.remove(current);
-    } else {
-      favorites.add(current);
-    }
-    notifyListeners();
-  }
-
-  void removeFavorite(WordPair pair) {
-    favorites.remove(pair);
-    notifyListeners();
-  }
-}
-
-class MyHomePage extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<RandomWords> createState() => _RandomWordsState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
+class _RandomWordsState extends State<RandomWords> {
+  final Repository _suggestions = Repository();
+  final _saved = <Word>{};
+  bool card = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
+  void _pushSaved() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          final tiles = _saved.map((pair) {
+            return ListTile(
+              title: Text(
+                pair.asPascalCase,
+                style: TextStyle(fontSize: 20),
+              ),
+            );
+          });
+          final divided = tiles.isNotEmpty
+              ? ListTile.divideTiles(
+                  context: context,
+                  tiles: tiles,
+                ).toList()
+              : <Widget>[];
+
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text("Saved suggestions"),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+            ),
+            body: ListView(
+              children: divided,
+            ),
+            backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-        break;
-      case 1:
-        page = FavoritesPage();
-        break;
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
     return Scaffold(
-      body: Row(
-        children: [
-          SafeArea(
-            child: NavigationRail(
-              extended: false,
-              destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite),
-                  label: Text('Favorites'),
-                ),
-              ],
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (value) {
-                setState(() {
-                  selectedIndex = value;
-                });
-              },
-            ),
+      appBar: AppBar(
+        title: const Text("Some name suggestions"),
+        actions: [
+          IconButton(
+            onPressed: (() {
+              setState(
+                () {
+                  if (card == false) {
+                    card = true;
+                  } else if (card == true) {
+                    card = false;
+                  }
+                },
+              );
+            }),
+            icon: const Icon(Icons.grid_view_outlined),
+            tooltip: card ? 'List visualization' : 'Card Visualization',
           ),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: page,
-            ),
+          IconButton(
+            onPressed: _pushSaved,
+            icon: const Icon(Icons.save_as),
+            tooltip: "Saved suggestions",
           ),
         ],
       ),
-    );
-  }
-}
-
-class GeneratorPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-
-    IconData icon;
-    if (appState.favorites.contains(pair)) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_border;
-    }
-
-    return Center(
-      child: Column(
+      body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          BigCard(pair: pair),
-          SizedBox(height: 10),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  appState.toggleFavorite();
-                },
-                icon: Icon(icon),
-                label: Text('Like'),
-              ),
-              SizedBox(width: 10),
-              ElevatedButton(
-                onPressed: () {
-                  appState.getNext();
-                },
-                child: Text('Next'),
-              ),
-            ],
+          const SizedBox(height: 10),
+          Expanded(
+            child: card
+                ? GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 20,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisExtent: 90,
+                        mainAxisSpacing: 50),
+                    itemBuilder: (context, i) {
+                      if (i >= _suggestions.length) return Text('');
+
+                      final alreadySaved =
+                          _saved.contains(_suggestions.index(i));
+
+                      return InkResponse(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/edit', arguments: {
+                            'index': i,
+                            'suggestions': _suggestions
+                          }).then((_) => setState((() {})));
+                        },
+                        child: GridTile(
+                          footer: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 22),
+                            child: Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              children: <Widget>[
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      if (alreadySaved) {
+                                        _saved.remove(_suggestions.index(i));
+                                      } else {
+                                        _saved.add(_suggestions.index(i));
+                                      }
+                                    });
+                                  },
+                                  icon: Icon(
+                                    alreadySaved
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: alreadySaved ? Colors.red : null,
+                                    semanticLabel: alreadySaved
+                                        ? "Removed from saved"
+                                        : "Save",
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      if (alreadySaved) {
+                                        _saved.remove(_suggestions.index(i));
+                                      }
+                                      _suggestions.remove(i);
+                                    });
+                                  },
+                                  icon: const Icon(Icons.delete),
+                                ),
+                              ],
+                            ),
+                          ),
+                          child: Text(
+                            _suggestions.index(i).asPascalCase,
+                            style: TextStyle(fontSize: 20),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : ListView.builder(
+                    itemBuilder: (context, i) {
+                      if (i.isOdd) return const Divider();
+
+                      final index = i ~/ 2;
+
+                      if (index >= _suggestions.length) return const Text('');
+
+                      final alreadySaved =
+                          _saved.contains(_suggestions.index(index));
+
+                      return ListTile(
+                        onTap: () {
+                          Navigator.pushNamed(context, '/edit', arguments: {
+                            'index': index,
+                            'suggestions': _suggestions
+                          }).then((_) => setState((() {})));
+                        },
+                        title: Text(
+                          _suggestions.index(index).asPascalCase,
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        trailing: Wrap(
+                          spacing: 20,
+                          children: <Widget>[
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (alreadySaved) {
+                                    _saved.remove(_suggestions.index(index));
+                                  } else {
+                                    _saved.add(_suggestions.index(index));
+                                  }
+                                });
+                              },
+                              icon: Icon(
+                                alreadySaved
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: alreadySaved ? Colors.red : null,
+                                semanticLabel: alreadySaved
+                                    ? "Removed from saved"
+                                    : "Save",
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  if (alreadySaved) {
+                                    _saved.remove(_suggestions.index(index));
+                                  }
+                                  _suggestions.remove(index);
+                                });
+                              },
+                              icon: Icon(Icons.delete),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: 40,
+                  ),
           ),
         ],
       ),
     );
   }
 }
+//     return ChangeNotifierProvider(
+//       create: (context) => MyAppState(),
+//       child: MaterialApp(
+//         title: 'Namer App',
+//         theme: ThemeData(
+//           useMaterial3: true,
+//           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+//         ),
+//         home: MyHomePage(),
+//       ),
+//     );
+//   }
+// }
 
-class BigCard extends StatelessWidget {
-  const BigCard({
-    super.key,
-    required this.pair,
-  });
-
-  final WordPair pair;
-
-  @override
-  Widget build(BuildContext context) {
-    var theme = Theme.of(context);
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    return Card(
-      color: theme.colorScheme.primary,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(
-          pair.asLowerCase,
-          style: style,
-          semanticsLabel: pair.asPascalCase,
-        ),
-      ),
-    );
-  }
-}
-
-class FavoritesPage extends StatefulWidget {
-  const FavoritesPage({super.key});
-
-  @override
-  State<FavoritesPage> createState() => _FavoritesPageState();
-}
-
-class _FavoritesPageState extends State<FavoritesPage> {
-  bool _isGrid = true;
-
-  @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-
-    if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text('No favorites yet.'),
-      );
-    }
-
-    List<Widget> favoritesList = appState.favorites
-        .map((pair) => ListTile(
-              leading: Icon(Icons.favorite),
-              title: Text(pair.asLowerCase),
-              trailing: IconButton(
-                icon: Icon(Icons.remove_circle_outline),
-                onPressed: () {
-                  appState.removeFavorite(pair);
-                },
-              ),
-            ))
-        .toList();
-
-    List<Widget> favoritesGrid = appState.favorites
-        .map((pair) => Card(
-              child: Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      pair.asLowerCase,
-                      style: Theme.of(context).textTheme.titleLarge,
-                      semanticsLabel: pair.asPascalCase,
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      icon: Icon(Icons.remove_circle_outline),
-                      onPressed: () {
-                        appState.removeFavorite(pair);
-                      },
-                    ),
-                  )
-                ],
-              ),
-            ))
-        .toList();
-
-    final favoritesView = _isGrid
-        ? GridView.count(
-            crossAxisCount: 2,
-            padding: const EdgeInsets.all(10),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1,
-            children: favoritesGrid,
-          )
-        : ListView(
-            children: favoritesList,
-          );
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("You have ${appState.favorites.length} favorites: "),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    _isGrid = !_isGrid;
-                  });
-                },
-                icon: Icon(_isGrid ? Icons.list : Icons.grid_view),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: favoritesView,
-        ),
-      ],
-    );
-  }
-}
