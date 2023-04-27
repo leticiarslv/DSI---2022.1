@@ -1,4 +1,4 @@
-import 'repository.dart';
+import 'package:namer_app/repository.dart';
 import 'package:flutter/material.dart';
 
 class EditPage extends StatefulWidget {
@@ -17,11 +17,14 @@ class _EditPageState extends State<EditPage> {
     final arguments =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final Repository state = arguments['suggestions'];
-    final int index = arguments['index'];
+    final int? index = arguments['index'];
+    final String? type = arguments['type'];
 
     return Scaffold(
         appBar: AppBar(
-          title: Text('Edit the word "${state.index(index).asPascalCase}"'),
+          title: type == null
+              ? Text('Edit the word "${state.index(index!).asPascalCase}"')
+              : Text('Add word'),
         ),
         body: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
@@ -41,25 +44,36 @@ class _EditPageState extends State<EditPage> {
                     onChanged: (value) => setState(() {
                       newWord = value;
                     }),
-                    decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Enter the new Word',
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: type == null
+                          ? 'Write here to edit'
+                          : 'Write here to add',
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
                       setState(() {
-                        state.changeWordByIndex(newWord, index);
+                        if (type == null) {
+                          state.changeWordByIndex(newWord, index!);
+                        } else {
+                          state.addWord(newWord);
+                        }
                       });
                       Navigator.pop(context);
                     }
                   },
-                  child: Text(
-                      'Edit ${state.index(index).asPascalCase} to $newWord'),
-                )
+                  child: type == null
+                      ? Text(
+                          'Edit ${state.index(index!).asPascalCase} to $newWord')
+                      : Text('Add $newWord'),
+                ),
               ],
             ),
           ),

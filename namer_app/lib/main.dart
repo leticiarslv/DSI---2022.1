@@ -1,4 +1,3 @@
-import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
 import 'package:namer_app/words.dart';
 import 'package:namer_app/edit.dart';
@@ -41,7 +40,6 @@ class _RandomWordsState extends State<RandomWords> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
@@ -84,6 +82,7 @@ class _RandomWordsState extends State<RandomWords> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Some name suggestions"),
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         actions: [
           IconButton(
             onPressed: (() {
@@ -104,18 +103,34 @@ class _RandomWordsState extends State<RandomWords> {
             onPressed: _pushSaved,
             icon: const Icon(Icons.save_as),
             tooltip: "Saved suggestions",
-          ),
+          )
         ],
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              IconButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/edit', arguments: {
+                      'type': 'add',
+                      'suggestions': _suggestions
+                    }).then((_) => setState((() {})));
+                  },
+                  icon: Icon(
+                    Icons.add,
+                    size: 30,
+                  ))
+            ],
+          ),
           const SizedBox(height: 10),
           Expanded(
             child: card
                 ? GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: 20,
+                    itemCount: _suggestions.length,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         mainAxisExtent: 90,
